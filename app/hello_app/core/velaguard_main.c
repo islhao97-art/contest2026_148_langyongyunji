@@ -207,7 +207,7 @@ LV_FONT_DECLARE(velaguard_font_20);
 #define VG_Y(v)                 ((int32_t)(((v) * VG_SCREEN_H + VG_BASE_H / 2) / VG_BASE_H))
 #define VG_SOS_LONG_MS          1200
 #define VG_BUTTON_RELEASE_DEBOUNCE_MS 100
-#define VG_HOME_EDIT_LONG_MS    1200
+#define VG_HOME_EDIT_LONG_MS     800
 #define VG_HOME_GESTURE_SLOP_PX VG_X(12)
 #define VG_PAGE_SWIPE_TRIGGER_PX VG_X(15)
 #define VG_HOLD_CONFIRM_MS      3000
@@ -1202,6 +1202,9 @@ static void vg_create_rainbow_preview(lv_obj_t *parent)
   lv_obj_set_style_border_width(parent, 0, LV_PART_MAIN);
   lv_obj_set_style_pad_all(parent, 0, LV_PART_MAIN);
   lv_obj_clear_flag(parent, LV_OBJ_FLAG_SCROLLABLE);
+  /* The preview covers almost the whole card.  It must never become the
+   * input target, otherwise only the narrow card margin can select 流星. */
+  lv_obj_clear_flag(parent, LV_OBJ_FLAG_CLICKABLE);
 
   for (i = 0; i < (int)(sizeof(arc_colors) / sizeof(arc_colors[0])); i++)
     {
@@ -1250,6 +1253,7 @@ static void vg_create_rainbow_preview(lv_obj_t *parent)
 
       lv_image_set_src(digit, src);
       lv_image_set_scale(digit, 100);
+      lv_obj_clear_flag(digit, LV_OBJ_FLAG_CLICKABLE);
       lv_obj_align(digit, LV_ALIGN_TOP_LEFT,
                    vg_preview_x(64 + (i % 2) * 58),
                    vg_preview_y(i < 2 ? 49 : 129));
@@ -1393,6 +1397,22 @@ static void vg_home_event_cb(lv_event_t *event)
   else if (code == LV_EVENT_RELEASED)
     {
       g_vg.home_press_start_ms = 0;
+      return;
+    }
+  else if (code == LV_EVENT_LONG_PRESSED ||
+           code == LV_EVENT_LONG_PRESSED_REPEAT)
+    {
+      if (!g_vg.home_press_moved && !g_vg.home_edit_handled &&
+          g_vg.home_press_start_ms != 0 &&
+          vg_uptime_ms() - g_vg.home_press_start_ms >=
+          VG_HOME_EDIT_LONG_MS)
+        {
+          g_vg.home_edit_handled = true;
+          printf("VelaGuard UI: watchface edit long press\n");
+          vg_nav_request(VG_PAGE_WATCHFACE_PICKER, LV_DIR_NONE,
+                         "home-long");
+        }
+
       return;
     }
   else if (code == LV_EVENT_GESTURE)
@@ -2203,6 +2223,9 @@ static void vg_render_home(void)
   lv_obj_add_event_cb(root, vg_home_event_cb, LV_EVENT_PRESSED, NULL);
   lv_obj_add_event_cb(root, vg_home_event_cb, LV_EVENT_PRESSING, NULL);
   lv_obj_add_event_cb(root, vg_home_event_cb, LV_EVENT_RELEASED, NULL);
+  lv_obj_add_event_cb(root, vg_home_event_cb, LV_EVENT_LONG_PRESSED, NULL);
+  lv_obj_add_event_cb(root, vg_home_event_cb,
+                      LV_EVENT_LONG_PRESSED_REPEAT, NULL);
   lv_obj_add_event_cb(root, vg_home_event_cb, LV_EVENT_GESTURE, NULL);
 
   g_vg.home_last_minute = -1;
@@ -2771,7 +2794,10 @@ static void vg_buttons_init(void)
       g_vg.button_arm_release_ms = 0;
       g_vg.button_release_candidate_ms = 0;
       g_vg.button_long_handled = false;
-      g_vg.button_armed = false;
+      /* /dev/buttons may report edge events rather than a continuously
+       * readable level.  Waiting for a second "released" sample here can
+       * therefore leave the button permanently disarmed after boot. */
+      g_vg.button_armed = true;
     }
 }
 
@@ -2787,38 +2813,23 @@ static void vg_buttons_poll(void)
     }
 
   nread = read(g_vg.button_fd, &sample, sizeof(sample));
-  if (nread != sizeof(sample))
+  if (nread == sizeof(sample))
+    {
+      g_vg.last_buttons = sample;
+    }
+  else if (errno == EAGAIN || errno == EWOULDBLOCK)
+    {
+      /* Some button drivers emit only transitions.  Keep evaluating the
+       * held state on every tick so a long press can cross its threshold
+       * without requiring repeated read events. */
+      sample = g_vg.last_buttons;
+    }
+  else
     {
       return;
     }
 
   now = vg_uptime_ms();
-
-  /*
-   * The button GPIO can be high while the board is powering up.  Arm the
-   * long-press detector only after a stable released sample has been seen.
-   */
-  if (!g_vg.button_armed)
-    {
-      if (sample & VG_SOS_BUTTON_BIT)
-        {
-          g_vg.button_arm_release_ms = 0;
-        }
-      else if (g_vg.button_arm_release_ms == 0)
-        {
-          g_vg.button_arm_release_ms = now;
-        }
-      else if (now - g_vg.button_arm_release_ms >=
-               VG_BUTTON_RELEASE_DEBOUNCE_MS)
-        {
-          g_vg.button_armed = true;
-          g_vg.button_arm_release_ms = 0;
-          printf("VelaGuard UI: SOS button armed after startup release\n");
-        }
-
-      g_vg.last_buttons = sample;
-      return;
-    }
 
   if ((sample & VG_SOS_BUTTON_BIT) &&
       g_vg.button_down_ms == 0)
