@@ -127,7 +127,7 @@ extern const lv_image_dsc_t velaguard_img_thumb_touch_future;
 #include "velaguard_ui.h"
 
 LV_FONT_DECLARE(velaguard_font_30);
-LV_FONT_DECLARE(lv_font_simsun_16_cjk);
+LV_FONT_DECLARE(velaguard_font_20);
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -1174,6 +1174,88 @@ static void vg_create_rainbow_background(lv_obj_t *parent)
     }
 }
 
+static int32_t vg_preview_x(int32_t value)
+{
+  return (value * 150 + VG_SCREEN_W / 2) / VG_SCREEN_W;
+}
+
+static int32_t vg_preview_y(int32_t value)
+{
+  return (value * 175 + VG_SCREEN_H / 2) / VG_SCREEN_H;
+}
+
+/* Keep the picker preview visually aligned with the procedural rainbow
+ * watchface instead of using a separate, stale screenshot asset. */
+static void vg_create_rainbow_preview(lv_obj_t *parent)
+{
+  static const uint32_t arc_colors[] =
+  {
+    0x227ea8,
+    0x3fbf99,
+    0xe7af3c,
+  };
+  int i;
+
+  lv_obj_set_size(parent, 150, 175);
+  lv_obj_set_style_bg_color(parent, lv_color_hex(0x091420), LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(parent, LV_OPA_COVER, LV_PART_MAIN);
+  lv_obj_set_style_border_width(parent, 0, LV_PART_MAIN);
+  lv_obj_set_style_pad_all(parent, 0, LV_PART_MAIN);
+  lv_obj_clear_flag(parent, LV_OBJ_FLAG_SCROLLABLE);
+
+  for (i = 0; i < (int)(sizeof(arc_colors) / sizeof(arc_colors[0])); i++)
+    {
+      lv_obj_t *arc = lv_arc_create(parent);
+      int32_t size = vg_preview_x(252 - i * 26);
+
+      lv_obj_set_size(arc, size, size);
+      lv_obj_align(arc, LV_ALIGN_TOP_RIGHT,
+                   vg_preview_x(48 + i * 8),
+                   -vg_preview_y(72 + i * 9));
+      lv_arc_set_range(arc, 0, 100);
+      lv_arc_set_value(arc, 100);
+      lv_arc_set_bg_angles(arc, 130, 315);
+      lv_arc_set_rotation(arc, 0);
+      lv_obj_remove_style(arc, NULL, LV_PART_KNOB);
+      lv_obj_clear_flag(arc, LV_OBJ_FLAG_CLICKABLE);
+      lv_obj_set_style_arc_width(arc, vg_preview_x(8), LV_PART_INDICATOR);
+      lv_obj_set_style_arc_color(arc, lv_color_hex(arc_colors[i]),
+                                 LV_PART_INDICATOR);
+      lv_obj_set_style_arc_opa(arc, LV_OPA_COVER, LV_PART_INDICATOR);
+      lv_obj_set_style_arc_width(arc, 0, LV_PART_MAIN);
+    }
+
+  for (i = 0; i < 6; i++)
+    {
+      lv_obj_t *drop = lv_obj_create(parent);
+
+      lv_obj_set_size(drop, vg_preview_x(5),
+                      vg_preview_y(13 + (i % 2) * 5));
+      lv_obj_align(drop, LV_ALIGN_TOP_LEFT,
+                   vg_preview_x(24 + i * 33),
+                   vg_preview_y(20 + (i % 3) * 16));
+      lv_obj_set_style_bg_color(drop, lv_color_hex(0x82d6ef), LV_PART_MAIN);
+      lv_obj_set_style_bg_opa(drop, LV_OPA_70, LV_PART_MAIN);
+      lv_obj_set_style_radius(drop, vg_preview_x(12), LV_PART_MAIN);
+      lv_obj_set_style_border_width(drop, 0, LV_PART_MAIN);
+      lv_obj_clear_flag(drop, LV_OBJ_FLAG_SCROLLABLE);
+      lv_obj_clear_flag(drop, LV_OBJ_FLAG_CLICKABLE);
+    }
+
+  for (i = 0; i < 4; i++)
+    {
+      lv_obj_t *digit = lv_image_create(parent);
+      const lv_image_dsc_t *src = i < 2 ?
+        g_rainbow_white_digits[i] : g_rainbow_blue_digits[i - 2];
+
+      lv_image_set_src(digit, src);
+      lv_image_set_scale(digit, 100);
+      lv_obj_align(digit, LV_ALIGN_TOP_LEFT,
+                   vg_preview_x(64 + (i % 2) * 58),
+                   vg_preview_y(i < 2 ? 49 : 129));
+    }
+}
+
 /****************************************************************************
  * Name: vg_battery_pct_label_create
  *
@@ -1699,7 +1781,7 @@ static lv_obj_t *vg_hold_button(lv_obj_t *parent, const char *text,
   label = lv_label_create(btn);
   /* Hold actions have a fixed two-line label.  The normal UI font is too
    * wide for "立即求助" in a 90 px pill and used to wrap into three lines. */
-  lv_obj_set_style_text_font(label, &lv_font_simsun_16_cjk, LV_PART_MAIN);
+  lv_obj_set_style_text_font(label, &velaguard_font_20, LV_PART_MAIN);
   lv_label_set_text(label, text);
   lv_label_set_long_mode(label, LV_LABEL_LONG_CLIP);
   lv_obj_set_width(label, w - VG_X(12));
@@ -2294,12 +2376,12 @@ static void vg_render_alert(void)
                        VG_COLOR_TEXT);
       lv_obj_align(label, LV_ALIGN_TOP_LEFT, VG_X(198), VG_Y(109));
 
-      vg_hold_button(root, "没事\n长按", VG_X(21), VG_Y(211),
-                     VG_X(90), VG_Y(54),
+      vg_hold_button(root, "没事\n长按", VG_X(21), VG_Y(208),
+                     VG_X(90), VG_Y(60),
                      0xd79500, VG_COLOR_TEXT,
                      VG_ACTION_FALL_CANCEL_HOLD);
-      vg_hold_button(root, "求助\n长按", VG_X(129), VG_Y(211),
-                     VG_X(90), VG_Y(54),
+      vg_hold_button(root, "求助\n长按", VG_X(129), VG_Y(208),
+                     VG_X(90), VG_Y(60),
                      0xff4b22, VG_COLOR_TEXT,
                      VG_ACTION_FALL_CONFIRM_HOLD);
       vg_update_countdown_visuals();
@@ -2523,6 +2605,7 @@ static void __attribute__((unused)) vg_render_watchface_picker(void)
   lv_obj_t *scr = vg_screen_reset();
   lv_obj_t *root;
   lv_obj_t *img;
+  lv_obj_t *preview;
   lv_obj_t *label;
   lv_obj_t *card;
 
@@ -2536,9 +2619,9 @@ static void __attribute__((unused)) vg_render_watchface_picker(void)
 
   card = vg_action_button(root, "", 18, 82, 166, 250, VG_COLOR_CARD_ALT,
                           VG_ACTION_DIAL_RAINBOW);
-  img = lv_image_create(card);
-  lv_image_set_src(img, &velaguard_img_thumb_rainbow_rain);
-  lv_obj_align(img, LV_ALIGN_TOP_MID, 0, 14);
+  preview = lv_obj_create(card);
+  lv_obj_align(preview, LV_ALIGN_TOP_MID, 0, 14);
+  vg_create_rainbow_preview(preview);
 
   label = vg_label(card, "流星", 154, LV_TEXT_ALIGN_CENTER,
                    VG_COLOR_TEXT);

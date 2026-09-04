@@ -247,9 +247,10 @@ def pack_4bpp(pixels):
     return out
 
 
-def write_font():
-    cjk_font = ImageFont.truetype(str(cjk_font_path()), FONT_SIZE)
-    latin_font = ImageFont.truetype(str(latin_font_path()), FONT_SIZE)
+def write_font(font_size=FONT_SIZE, output_name="velaguard_font_30",
+               feature_macro="VELAGUARD_FONT_30"):
+    cjk_font = ImageFont.truetype(str(cjk_font_path()), font_size)
+    latin_font = ImageFont.truetype(str(latin_font_path()), font_size)
     cjk_ascent, cjk_descent = cjk_font.getmetrics()
     latin_ascent, latin_descent = latin_font.getmetrics()
     ascent = max(cjk_ascent, latin_ascent)
@@ -287,11 +288,11 @@ def write_font():
     unicode_list = [cp - range_start for cp in cjk]
     range_length = max(cjk) - range_start + 1
 
-    out = UI / "velaguard_font_30.c"
+    out = UI / f"{output_name}.c"
     with out.open("w", encoding="ascii", newline="\n") as f:
         f.write("#include <lvgl.h>\n\n")
-        f.write("#ifndef VELAGUARD_FONT_30\n#define VELAGUARD_FONT_30 1\n#endif\n\n")
-        f.write("#if VELAGUARD_FONT_30\n\n")
+        f.write(f"#ifndef {feature_macro}\n#define {feature_macro} 1\n#endif\n\n")
+        f.write(f"#if {feature_macro}\n\n")
         f.write("static LV_ATTRIBUTE_LARGE_CONST const uint8_t glyph_bitmap[] =\n{\n")
         if bitmap:
             for i in range(0, len(bitmap), 16):
@@ -346,7 +347,7 @@ def write_font():
         f.write("  .bitmap_format = 0,\n")
         f.write("};\n\n")
 
-        f.write("const lv_font_t velaguard_font_30 =\n{\n")
+        f.write(f"const lv_font_t {output_name} =\n{{\n")
         f.write("  .get_glyph_dsc = lv_font_get_glyph_dsc_fmt_txt,\n")
         f.write("  .get_glyph_bitmap = lv_font_get_bitmap_fmt_txt,\n")
         f.write(f"  .line_height = {line_height},\n")
@@ -360,7 +361,7 @@ def write_font():
         f.write("};\n\n")
         f.write("#endif\n")
 
-    print(f"font velaguard_font_30.c size={FONT_SIZE} glyphs={len(glyphs)}")
+    print(f"font {output_name}.c size={font_size} glyphs={len(glyphs)}")
 
 
 def write_alarm_frames():
@@ -467,3 +468,4 @@ if __name__ == "__main__":
         write_lvgl_image(symbol(path), scale_watch_image(path))
 
     write_font()
+    write_font(20, "velaguard_font_20", "VELAGUARD_FONT_20")
