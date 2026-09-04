@@ -12,7 +12,7 @@ velaguard
 
 应用先跑通真实业务闭环：中文守护主界面、真实 IMU 跌倒检测、手动 SOS、倒计时确认、事件历史、设置页面，以及串口 JSON 事件输出。主界面已移除演示按钮，只显示守护状态、实时 IMU 判断依据和必要操作入口。
 
-界面使用 `ui/velaguard_font_18.c` 专用小字库，避免 LVGL 默认字体缺少中文字符。
+界面使用 `ui/velaguard_font_20.c` 专用中文字库，避免 LVGL 默认字体缺少中文字符。
 
 ## 团队构建
 
@@ -50,7 +50,7 @@ hello_app/
 │   ├── velaguard_imu.c
 │   └── velaguard_imu.h
 ├── ui/                      # UI 资源
-│   └── velaguard_font_18.c
+│   └── velaguard_font_20.c
 ├── comm/                    # 串口上报与后续蓝牙模块规划
 │   └── README.md
 ├── CMakeLists.txt

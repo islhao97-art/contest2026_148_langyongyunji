@@ -19,6 +19,7 @@ CSRCS += sensors$(DELIM)velaguard_imu.c
 CSRCS += comm$(DELIM)velaguard_ble.c
 CSRCS += comm$(DELIM)velaguard_ble_task.c
 CSRCS += ui$(DELIM)velaguard_font_30.c
+CSRCS += ui$(DELIM)velaguard_font_20.c
 CSRCS += $(wildcard ui$(DELIM)velaguard_img_*.c)
 
 CFLAGS += -DSOC_BF0_HCPU

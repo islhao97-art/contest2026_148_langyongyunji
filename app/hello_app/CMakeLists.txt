@@ -15,6 +15,7 @@ endif()
 
 file(GLOB VELAGUARD_UI_SRCS
      ui/velaguard_font_30.c
+     ui/velaguard_font_20.c
      ui/velaguard_img_*.c)
 
 # Noise suppression (libspeexdsp preprocess, BSD-3 licensed, vendored under
