@@ -127,6 +127,7 @@ extern const lv_image_dsc_t velaguard_img_thumb_touch_future;
 #include "velaguard_ui.h"
 
 LV_FONT_DECLARE(velaguard_font_30);
+LV_FONT_DECLARE(lv_font_simsun_16_cjk);
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -1698,7 +1699,7 @@ static lv_obj_t *vg_hold_button(lv_obj_t *parent, const char *text,
   label = lv_label_create(btn);
   /* Hold actions have a fixed two-line label.  The normal UI font is too
    * wide for "立即求助" in a 90 px pill and used to wrap into three lines. */
-  lv_obj_set_style_text_font(label, LV_FONT_DEFAULT, LV_PART_MAIN);
+  lv_obj_set_style_text_font(label, &lv_font_simsun_16_cjk, LV_PART_MAIN);
   lv_label_set_text(label, text);
   lv_label_set_long_mode(label, LV_LABEL_LONG_CLIP);
   lv_obj_set_width(label, w - VG_X(12));
