@@ -1,0 +1,7 @@
+diff --git a/chips/sf32lb52/sf32lb_adc.c b/chips/sf32lb52/sf32lb_adc.c
+--- a/chips/sf32lb52/sf32lb_adc.c
++++ b/chips/sf32lb52/sf32lb_adc.c
+@@ -269,2 +269 @@ static void adc_read_work(struct adc_dev_s *dev)
+-    syslog(LOG_INFO, "ADC raw=%lu ch=%u\n",
+-           (unsigned long)value, ctx->channel);
++    ainfo("ADC raw=%lu ch=%u\n", (unsigned long)value, ctx->channel);
